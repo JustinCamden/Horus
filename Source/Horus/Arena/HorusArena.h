@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// ©Justin Camden 2019, all rights reserved.
 
 #pragma once
 
@@ -20,8 +20,12 @@ class HORUS_API AHorusArena : public AActor
 	GENERATED_BODY()
 	
 public:	
+
+	/** Name of the Scene Root Component. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
+	static FName SceneRootName;
+
 	// Sets default values for this actor's properties
-	AHorusArena();
+	AHorusArena(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -37,7 +41,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category = HorusArena, meta = (UnsafeDuringActorConstruction))
 	void ResizeArena(int32 NewNumRows, int32 NewNumColumns);
 
+	/** 2D Array of all the zones in the arena. */
+	TArray<TArray<AHorusArenaZone*>> Zones;
+
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	/** Returns whether the arena has been initialized. */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = HorusArena)
+		const bool IsArenaInitialized() const { return bArenaInitialized; }
+
+	/** Called after the arena has been fully initialized. */
+	UFUNCTION(BlueprintImplementableEvent, Category = HorusArena)
+		void OnArenaInitialized();
+
+
+#if WITH_EDITOR
+	/*
+	* Function for updating any zones already in the arena.
+	* This should always be run before starting the game and after all updates have been made.
+	*/
+	UFUNCTION(BlueprintCallable, Category = HorusArena)
+		void UpdateZoneMappings();
+#endif
 
 protected:
 	// Called when the game starts or when spawned
@@ -79,8 +104,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = HorusArena)
 		float ArenaHalfWidth;
 
-	/** 2D Array of all the zones in the arena. */
-	TArray<TArray<AHorusArenaZone*>> Zones;
 
 #if WITH_EDITOR
 	// Visualization components for the zones
@@ -93,12 +116,18 @@ protected:
 	// Line thickness of the visualization zones.
 	UPROPERTY(EditAnywhere, Category = HorusArena)
 		float ZoneVisLineThickness;
+
+
 #endif
 
 private:
+	/** Whether the arena has been initialized. */
+		bool bArenaInitialized;
 
 	/** Used to generate an arena according to the number of rows and columns. */
 	void ConstructArena();
 
-
+	/** Root scene component. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = HorusArenaZoneGenerator, meta = (AllowPrivateAccess = "true"))
+		USceneComponent* SceneRoot;
 };

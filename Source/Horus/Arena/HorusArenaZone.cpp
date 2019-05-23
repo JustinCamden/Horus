@@ -1,13 +1,33 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// ©Justin Camden 2019, all rights reserved.
 
 #include "HorusArenaZone.h"
+#include "Core/HorusVisualBoxComponent.h"
+
+FName AHorusArenaZone::SceneRootName(TEXT("SceneRoot"));
 
 // Sets default values
-AHorusArenaZone::AHorusArenaZone()
+AHorusArenaZone::AHorusArenaZone(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	//PrimaryActorTick.bCanEverTick = true;
+	RowIdx = 0;
+	ColumnIdx = 0;
+
+	// Initialize components
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(SceneRootName);
+	RootComponent = SceneRoot;
+
+#if WITH_EDITOR
+	VisBox = CreateDefaultSubobject<UHorusVisualBoxComponent>(TEXT("VisBox"));
+	if (VisBox)
+	{
+		VisBox->SetupAttachment(RootComponent);
+		VisBox->SetBoxExtent(FVector(50.0f, 37.5f, 25.0f));
+		VisBox->SetRelativeLocation(FVector(0.0f, 0.0f, 25.0f));
+		VisBox->SetLineThickness(2.0f);
+	}
+#endif
 
 }
 
@@ -23,4 +43,3 @@ void AHorusArenaZone::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-

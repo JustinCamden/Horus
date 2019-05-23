@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// ©Justin Camden 2019, all rights reserved.
 
 #include "Horus.h"
 #include "Modules/ModuleManager.h"
