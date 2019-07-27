@@ -48,7 +48,7 @@ FReply FHorusArenaCustomization::ExecuteCommand(IDetailLayoutBuilder* DetailBuil
 		AHorusArena* Arena = Cast<AHorusArena>(*Iter);
 		if (Arena) {
 			UE_LOG(LogHorusArenaCustomization, Log, TEXT("%s: Updating arena zone mappings."), *GetNameSafe(Arena));
-			Arena->UpdateZoneMappings();
+			//Arena->UpdateZoneMappings();
 		}
 	}
 	return FReply::Handled();

@@ -8,11 +8,21 @@
 
 class AHorusArenaZone;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 
-class UHorusVisualBoxComponent;
+class UHorusVisBoxComponent;
 
 #endif
+
+USTRUCT()
+struct FHorusArenaRow
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	TArray<AHorusArenaZone*> Column;
+};
 
 UCLASS()
 class HORUS_API AHorusArena : public AActor
@@ -27,9 +37,6 @@ public:
 	// Sets default values for this actor's properties
 	AHorusArena(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	/** Called to initialize the arena. */
 	void InitializeArena();
 
@@ -42,7 +49,8 @@ public:
 	void ResizeArena(int32 NewNumRows, int32 NewNumColumns);
 
 	/** 2D Array of all the zones in the arena. */
-	TArray<TArray<AHorusArenaZone*>> Zones;
+	UPROPERTY()
+	TArray<FHorusArenaRow> Rows;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 
@@ -54,6 +62,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = HorusArena)
 		void OnArenaInitialized();
 
+	/** The default class of zone to spawn. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HorusArena)
+		TSubclassOf<AHorusArenaZone> DefaultZone;
 
 #if WITH_EDITOR
 	/*
@@ -62,6 +73,9 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = HorusArena)
 		void UpdateZoneMappings();
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
 #endif
 
 protected:
@@ -105,20 +119,7 @@ protected:
 		float ArenaHalfWidth;
 
 
-#if WITH_EDITOR
-	// Visualization components for the zones
-	TArray<TArray<UHorusVisualBoxComponent*>> ZoneVisualizations;
 
-	// Height of the visualization zones.
-	UPROPERTY(EditAnywhere, Category = HorusArena)
-		float ZoneVisHeight;
-
-	// Line thickness of the visualization zones.
-	UPROPERTY(EditAnywhere, Category = HorusArena)
-		float ZoneVisLineThickness;
-
-
-#endif
 
 private:
 	/** Whether the arena has been initialized. */
@@ -130,4 +131,21 @@ private:
 	/** Root scene component. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = HorusArenaZoneGenerator, meta = (AllowPrivateAccess = "true"))
 		USceneComponent* SceneRoot;
+
+#if WITH_EDITORONLY_DATA
+
+public:
+	// Visualization components for the zones
+	TArray<TArray<UHorusVisBoxComponent*>> ZoneVisualizations;
+
+	// Height of the visualization zones.
+	UPROPERTY(EditAnywhere, Category = HorusArena)
+		float ZoneVisHeight;
+
+	// Line thickness of the visualization zones.
+	UPROPERTY(EditAnywhere, Category = HorusArena)
+		float ZoneVisLineThickness;
+
+
+#endif
 };

@@ -15,7 +15,7 @@ DEFINE_LOG_CATEGORY(HorusEditor)
 
 void FHorusEditorModule::StartupModule()
 {
-	UE_LOG(HorusEditor, Warning, TEXT("HorusEditor: Log Started"));
+	UE_LOG(HorusEditor, Display, TEXT("HorusEditor: Log Started"));
 
 	// Register the details customization
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -25,7 +25,7 @@ void FHorusEditorModule::StartupModule()
 
 void FHorusEditorModule::ShutdownModule()
 {
-	UE_LOG(HorusEditor, Warning, TEXT("HorusEditor: Log Ended"));
+	UE_LOG(HorusEditor, Display, TEXT("HorusEditor: Log Ended"));
 }
 
 #undef LOCTEXT_NAMESPACE

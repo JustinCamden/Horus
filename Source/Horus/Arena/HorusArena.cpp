@@ -1,15 +1,18 @@
 // ©Justin Camden 2019, all rights reserved.
 
 #include "HorusArena.h"
-#include "HorusArenaZone.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "HorusArenaZone.h"
 
 #if WITH_EDITOR
 
-#include "Core/HorusVisualBoxComponent.h"
+#include "Core/Tools/HorusVisBoxComponent.h"
 
 #endif
+
+// Log categories
+DEFINE_LOG_CATEGORY_STATIC(HorusArena, All, All);
 
 FName AHorusArena::SceneRootName(TEXT("SceneRoot"));
 
@@ -30,6 +33,7 @@ AHorusArena::AHorusArena(const FObjectInitializer& ObjectInitializer)
 	ArenaHalfLength = 0.0f;
 	ArenaHalfWidth = 0.0f;
 	bArenaInitialized = false;
+	DefaultZone = AHorusArena::StaticClass();
 
 	// Initialize components
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(SceneRootName);
@@ -49,9 +53,9 @@ void AHorusArena::BeginPlay()
 
 #if WITH_EDITOR
 	// Remove all visualization components
-	for(TArray<UHorusVisualBoxComponent*>& VisRow : ZoneVisualizations)
+	for(TArray<UHorusVisBoxComponent*>& VisRow : ZoneVisualizations)
 	{
-		for (UHorusVisualBoxComponent*& CurrVis : VisRow)
+		for (UHorusVisBoxComponent*& CurrVis : VisRow)
 		{
 			CurrVis->SetGenerateOverlapEvents(false);
 			CurrVis->DestroyComponent();
@@ -65,13 +69,6 @@ void AHorusArena::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	ConstructArena();
-}
-
-// Called every frame
-void AHorusArena::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void AHorusArena::InitializeArena()
@@ -92,19 +89,22 @@ void AHorusArena::InitializeArena()
 		// Create and populate each column
 		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
-			AHorusArenaZone*& CurrZone = Zones[RowIdx][ColumnIdx];
+			AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
 
 			// Spawn new zone if necessary
 			if (!CurrZone)
 			{
+				UE_LOG(HorusArena, Display, TEXT("%s: Zone not found for Column %d, Row %d. Spawning default zone class."), *GetNameSafe(this), ColumnIdx, RowIdx);
 				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
 				SpawnTransform.SetLocation(BaseSpawnLoc + SpawnOffset);
-				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(AHorusArenaZone::StaticClass(), SpawnTransform, SpawnParameters);
+				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(DefaultZone, SpawnTransform, SpawnParameters);
 				NewZone->Arena = this;
 				NewZone->RowIdx = RowIdx;
 				NewZone->ColumnIdx = ColumnIdx;
 				CurrZone = NewZone;
 			}
+
+			ensureMsgf(CurrZone != nullptr, TEXT("%f: Arena Zone at Row %d, Column %d is null!"), *GetNameSafe(this), RowIdx, ColumnIdx);
 		}
 	}
 
@@ -113,20 +113,20 @@ void AHorusArena::InitializeArena()
 	{
 		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
-			AHorusArenaZone*& CurrZone = Zones[RowIdx][ColumnIdx];
+			AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
 
 			if (NumRows > 1)
 			{
 				// Set next row
 				if (RowIdx < NumRows - 1)
 				{
-					CurrZone->NextRowZone = Zones[RowIdx + 1][ColumnIdx];
+					CurrZone->NextRowZone = Rows[RowIdx + 1].Column[ColumnIdx];
 				}
 
 				// Set previous row
 				if (RowIdx > 0)
 				{
-					CurrZone->PreviousRowZone = Zones[RowIdx - 1][ColumnIdx];
+					CurrZone->PreviousRowZone = Rows[RowIdx - 1].Column[ColumnIdx];
 				}
 			}
 
@@ -135,13 +135,13 @@ void AHorusArena::InitializeArena()
 				// Set next column
 				if (ColumnIdx < NumColumns - 1)
 				{
-					CurrZone->NextColumnZone = Zones[RowIdx][ColumnIdx + 1];
+					CurrZone->NextColumnZone = Rows[RowIdx].Column[ColumnIdx + 1];
 				}
 
 				// Set previous column
 				if (ColumnIdx > 0)
 				{
-					CurrZone->PreviousColumnZone = Zones[RowIdx][ColumnIdx - 1];
+					CurrZone->PreviousColumnZone = Rows[RowIdx].Column[ColumnIdx - 1];
 				}
 			}
 		}
@@ -150,26 +150,26 @@ void AHorusArena::InitializeArena()
 	// Call initialized on the arena and all zones
 	OnArenaInitialized();
 	bArenaInitialized = true;
-	for (TArray<AHorusArenaZone*>& CurrRow : Zones)
+	for (FHorusArenaRow& CurrRow : Rows)
 	{
-		for (AHorusArenaZone* CurrZone : CurrRow)
+		for (AHorusArenaZone* CurrColumn : CurrRow.Column)
 		{
-			CurrZone->OnArenaInitialized();
+			CurrColumn->OnArenaInitialized();
 		}
 	}
 
 	return;
 }
 
-AHorusArenaZone* AHorusArena::GetArenaZone(int32 Column, int32 Row) const
+AHorusArenaZone* AHorusArena::GetArenaZone(int32 Row, int32 Column) const
 {
 	if (Column < NumColumns && Row < NumRows)
 	{
-		return Zones[Column][Row];
+		return Rows[Row].Column[Column];
 	}
 	return nullptr;
 }
-
+//
 #if WITH_EDITOR
 
 void AHorusArena::UpdateZoneMappings()
@@ -190,7 +190,7 @@ void AHorusArena::UpdateZoneMappings()
 		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
 			SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
-			UHorusVisualBoxComponent* CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
+			UHorusVisBoxComponent* CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
 
 			// Get the zone with the shortest distance to this visualization component
 			TArray<AHorusArenaZone*> OverlappingZones;
@@ -206,7 +206,7 @@ void AHorusArena::UpdateZoneMappings()
 			}
 			//CurrVis->GetOverlappingActors(OverlappingZones, TSubclassOf<AHorusArenaZone>());
 		
-			float BestDistSquared = 999999999.0f;
+			float BestDistSquared = BIG_NUMBER;
 			AHorusArenaZone* BestZone = nullptr;
 			for (AHorusArenaZone* CurrZone : OverlappingZones)
 			{
@@ -248,15 +248,27 @@ void AHorusArena::UpdateZoneMappings()
 	return;
 }
 
+void AHorusArena::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	if (PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetName() == GET_MEMBER_NAME_CHECKED(AHorusArena, DefaultZone).ToString())
+	{
+		if (DefaultZone == NULL)
+		{
+			DefaultZone = AHorusArenaZone::StaticClass();
+		}
+	}
+}
+
 #endif
 
 void AHorusArena::ConstructArena()
 {
 	// Initialize arena dimensions
-	Zones.SetNum(NumRows);
+	Rows.SetNum(NumRows);
 	for (int32 Idx = 0; Idx < NumRows; Idx++)
 	{
-		Zones[Idx].SetNum(NumColumns);
+		Rows[Idx].Column.SetNum(NumColumns);
 	}
 
 	// Calculate the new length and width
@@ -275,8 +287,8 @@ void AHorusArena::ConstructArena()
 		{
 			for (int32 Idx = NumRows; Idx < ZoneVisualizations.Num(); Idx++)
 			{
-				TArray<UHorusVisualBoxComponent*>& CurrRow = ZoneVisualizations[Idx];
-				for (UHorusVisualBoxComponent*& CurrVis : CurrRow)
+				TArray<UHorusVisBoxComponent*>& CurrRow = ZoneVisualizations[Idx];
+				for (UHorusVisBoxComponent*& CurrVis : CurrRow)
 				{
 					CurrVis->DestroyComponent();
 					CurrVis = nullptr;
@@ -289,10 +301,10 @@ void AHorusArena::ConstructArena()
 		{
 			for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
 			{
-				TArray<UHorusVisualBoxComponent*>& CurrRow = ZoneVisualizations[RowIdx];
+				TArray<UHorusVisBoxComponent*>& CurrRow = ZoneVisualizations[RowIdx];
 				for (int32 ColumnIdx = NumColumns; ColumnIdx < CurrRow.Num(); ColumnIdx++)
 				{
-					UHorusVisualBoxComponent*& CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
+					UHorusVisBoxComponent*& CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
 					CurrVis->DestroyComponent();
 					CurrVis = nullptr;
 				}
@@ -320,10 +332,10 @@ void AHorusArena::ConstructArena()
 			{
 				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaWidth;
 				SpawnTransform.SetLocation(BaseSpawnLoc + SpawnOffset);
-				UHorusVisualBoxComponent*& CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
+				UHorusVisBoxComponent*& CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
 				if (!CurrVis)
 				{
-					CurrVis = NewObject<UHorusVisualBoxComponent>(this);
+					CurrVis = NewObject<UHorusVisBoxComponent>(this);
 					CurrVis->RegisterComponent();
 					CurrVis->AttachToComponent(RootComponent, AttachmentRules);
 				}
@@ -352,12 +364,12 @@ void AHorusArena::ResizeArena(int32 NewNumColumns, int32 NewNumRows)
 		// Prune extra rows
 		for (int32 Idx = NumRows; Idx < OldNumRows; Idx++)
 		{
-			TArray<AHorusArenaZone*>& CurrRow = Zones[Idx];
-			for (AHorusArenaZone*& CurrZone : CurrRow)
+			FHorusArenaRow& CurrRow = Rows[Idx];
+			for (AHorusArenaZone*& CurrZone : CurrRow.Column)
 			{
 				if (CurrZone)
 				{
-					CurrZone->SetLifeSpan(0.00001f);
+					CurrZone->SetLifeSpan(KINDA_SMALL_NUMBER);
 					CurrZone = nullptr;
 				}
 			}
@@ -368,10 +380,10 @@ void AHorusArena::ResizeArena(int32 NewNumColumns, int32 NewNumRows)
 		{
 			for (int32 ColumnIdx = NumColumns; ColumnIdx < OldNumColumns; ColumnIdx++)
 			{
-				AHorusArenaZone*& CurrZone = Zones[RowIdx][ColumnIdx];
+				AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
 				if (CurrZone)
 				{
-					CurrZone->SetLifeSpan(0.00001f);
+					CurrZone->SetLifeSpan(KINDA_SMALL_NUMBER);
 					CurrZone = nullptr;
 				}
 			}

@@ -8,8 +8,10 @@
 
 class AHorusArena;
 
-#if WITH_EDITOR
-class UHorusVisualBoxComponent;
+#if WITH_EDITORONLY_DATA
+
+	class UHorusVisBoxComponent;
+
 #endif
 
 UCLASS()
@@ -60,11 +62,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = HorusArenaZone)
 		int32 ColumnIdx;
 
-#if WITH_EDITOR
+	/** Returns whether this zone is traversable. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = HorusArenaZone)
+	bool IsTraversable() const;
+
+#if WITH_EDITORONLY_DATA
+
 	/** Box component for visualization and overlap checks with the arena. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = HorusArenaZone, meta = (AllowPrivateAccess = "true"))
-		UHorusVisualBoxComponent* VisBox;
+		UHorusVisBoxComponent* VisBox;
 #endif
+
 
 protected:
 	// Called when the game starts or when spawned

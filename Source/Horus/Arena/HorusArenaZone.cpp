@@ -1,7 +1,12 @@
 // ©Justin Camden 2019, all rights reserved.
 
 #include "HorusArenaZone.h"
-#include "Core/HorusVisualBoxComponent.h"
+
+#if WITH_EDITOR
+
+#include "Core/Tools/HorusVisBoxComponent.h"
+
+#endif
 
 FName AHorusArenaZone::SceneRootName(TEXT("SceneRoot"));
 
@@ -19,7 +24,7 @@ AHorusArenaZone::AHorusArenaZone(const FObjectInitializer& ObjectInitializer)
 	RootComponent = SceneRoot;
 
 #if WITH_EDITOR
-	VisBox = CreateDefaultSubobject<UHorusVisualBoxComponent>(TEXT("VisBox"));
+	VisBox = CreateDefaultSubobject<UHorusVisBoxComponent>(TEXT("VisBox"));
 	if (VisBox)
 	{
 		VisBox->SetupAttachment(RootComponent);
@@ -42,4 +47,9 @@ void AHorusArenaZone::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+bool AHorusArenaZone::IsTraversable_Implementation() const
+{
+	return true;
 }
