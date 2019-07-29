@@ -1,4 +1,4 @@
-// ©Justin Camden 2019, all rights reserved.
+// ï¿½Justin Camden 2019, all rights reserved.
 
 #include "HorusArena.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
@@ -104,7 +104,7 @@ void AHorusArena::InitializeArena()
 				CurrZone = NewZone;
 			}
 
-			ensureMsgf(CurrZone != nullptr, TEXT("%f: Arena Zone at Row %d, Column %d is null!"), *GetNameSafe(this), RowIdx, ColumnIdx);
+			checkf(CurrZone != nullptr, TEXT("%f: Arena Zone at Row %d, Column %d is null!"), *GetNameSafe(this), RowIdx, ColumnIdx);
 		}
 	}
 
