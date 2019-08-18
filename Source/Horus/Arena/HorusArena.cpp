@@ -12,7 +12,7 @@
 #endif
 
 // Log categories
-DEFINE_LOG_CATEGORY_STATIC(HorusArena, All, All);
+DEFINE_LOG_CATEGORY_STATIC(LogHorusArena, All, All);
 
 FName AHorusArena::SceneRootName(TEXT("SceneRoot"));
 
@@ -94,7 +94,7 @@ void AHorusArena::InitializeArena()
 			// Spawn new zone if necessary
 			if (!CurrZone)
 			{
-				UE_LOG(HorusArena, Display, TEXT("%s: Zone not found for Column %d, Row %d. Spawning default zone class."), *GetNameSafe(this), ColumnIdx, RowIdx);
+				UE_LOG(LogHorusArena, Warning, TEXT("%s: Zone not found for Column %d, Row %d. Spawning default zone class."), *GetNameSafe(this), ColumnIdx, RowIdx);
 				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
 				SpawnTransform.SetLocation(BaseSpawnLoc + SpawnOffset);
 				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(DefaultZone, SpawnTransform, SpawnParameters);
