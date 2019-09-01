@@ -7,7 +7,7 @@
 #include "HorusElement.generated.h"
 
 /**
- * Generic class for the types of elements in the game.
+ * Base class for elemental types.
  */
 
 UCLASS()
