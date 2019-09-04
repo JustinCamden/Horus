@@ -3,7 +3,7 @@
 #include "HorusArena.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
-#include "HorusArenaZone.h"
+#include "ArenaZones/HorusArenaZone.h"
 
 #if WITH_EDITOR
 
@@ -89,7 +89,7 @@ void AHorusArena::InitializeArena()
 		// Create and populate each column
 		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
-			AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
+			AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
 
 			// Spawn new zone if necessary
 			if (!CurrZone)
@@ -113,20 +113,20 @@ void AHorusArena::InitializeArena()
 	{
 		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
-			AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
+			AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
 
 			if (NumRows > 1)
 			{
 				// Set next row
 				if (RowIdx < NumRows - 1)
 				{
-					CurrZone->NextRowZone = Rows[RowIdx + 1].Column[ColumnIdx];
+					CurrZone->NextRowZone = Rows[RowIdx + 1].Columns[ColumnIdx];
 				}
 
 				// Set previous row
 				if (RowIdx > 0)
 				{
-					CurrZone->PreviousRowZone = Rows[RowIdx - 1].Column[ColumnIdx];
+					CurrZone->PreviousRowZone = Rows[RowIdx - 1].Columns[ColumnIdx];
 				}
 			}
 
@@ -135,13 +135,13 @@ void AHorusArena::InitializeArena()
 				// Set next column
 				if (ColumnIdx < NumColumns - 1)
 				{
-					CurrZone->NextColumnZone = Rows[RowIdx].Column[ColumnIdx + 1];
+					CurrZone->NextColumnZone = Rows[RowIdx].Columns[ColumnIdx + 1];
 				}
 
 				// Set previous column
 				if (ColumnIdx > 0)
 				{
-					CurrZone->PreviousColumnZone = Rows[RowIdx].Column[ColumnIdx - 1];
+					CurrZone->PreviousColumnZone = Rows[RowIdx].Columns[ColumnIdx - 1];
 				}
 			}
 		}
@@ -152,7 +152,7 @@ void AHorusArena::InitializeArena()
 	bArenaInitialized = true;
 	for (FHorusArenaRow& CurrRow : Rows)
 	{
-		for (AHorusArenaZone* CurrColumn : CurrRow.Column)
+		for (AHorusArenaZone* CurrColumn : CurrRow.Columns)
 		{
 			CurrColumn->OnArenaInitialized();
 		}
@@ -165,7 +165,7 @@ AHorusArenaZone* AHorusArena::GetArenaZone(int32 Row, int32 Column) const
 {
 	if (Column < NumColumns && Row < NumRows)
 	{
-		return Rows[Row].Column[Column];
+		return Rows[Row].Columns[Column];
 	}
 	return nullptr;
 }
@@ -244,7 +244,6 @@ void AHorusArena::UpdateZoneMappings()
 		}
 	}
 
-
 	return;
 }
 
@@ -268,7 +267,7 @@ void AHorusArena::ConstructArena()
 	Rows.SetNum(NumRows);
 	for (int32 Idx = 0; Idx < NumRows; Idx++)
 	{
-		Rows[Idx].Column.SetNum(NumColumns);
+		Rows[Idx].Columns.SetNum(NumColumns);
 	}
 
 	// Calculate the new length and width
@@ -365,7 +364,7 @@ void AHorusArena::ResizeArena(int32 NewNumColumns, int32 NewNumRows)
 		for (int32 Idx = NumRows; Idx < OldNumRows; Idx++)
 		{
 			FHorusArenaRow& CurrRow = Rows[Idx];
-			for (AHorusArenaZone*& CurrZone : CurrRow.Column)
+			for (AHorusArenaZone*& CurrZone : CurrRow.Columns)
 			{
 				if (CurrZone)
 				{
@@ -380,7 +379,7 @@ void AHorusArena::ResizeArena(int32 NewNumColumns, int32 NewNumRows)
 		{
 			for (int32 ColumnIdx = NumColumns; ColumnIdx < OldNumColumns; ColumnIdx++)
 			{
-				AHorusArenaZone*& CurrZone = Rows[RowIdx].Column[ColumnIdx];
+				AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
 				if (CurrZone)
 				{
 					CurrZone->SetLifeSpan(KINDA_SMALL_NUMBER);

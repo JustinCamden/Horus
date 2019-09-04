@@ -14,15 +14,42 @@ class UHorusVisBoxComponent;
 
 #endif
 
-USTRUCT()
+USTRUCT(Blueprintable)
+struct FHorusArenaRowData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<TSoftClassPtr<AHorusArenaZone>> Columns;
+};
+
+FORCEINLINE FArchive& operator<<(FArchive& Ar, FHorusArenaRowData& ArenaRowData)
+{
+	Ar << ArenaRowData.Columns;
+	return Ar;
+}
+
+USTRUCT(Blueprintable)
+struct FHorusArenaData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TSoftClassPtr<AHorusArenaZone> DefaultZoneClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<FHorusArenaRowData> Rows;
+};
+
+USTRUCT(Blueprintable)
 struct FHorusArenaRow
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY()
-	TArray<AHorusArenaZone*> Column;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<AHorusArenaZone*> Columns;
 };
+
 
 UCLASS()
 class HORUS_API AHorusArena : public AActor
@@ -68,8 +95,7 @@ public:
 
 #if WITH_EDITOR
 	/*
-	* Function for updating any zones already in the arena.
-	* This should always be run before starting the game and after all updates have been made.
+	* Function for updating the references to zones placed with the arena
 	*/
 	UFUNCTION(BlueprintCallable, Category = HorusArena)
 		void UpdateZoneMappings();
