@@ -1,7 +1,10 @@
 // ©Justin Camden 2019, all rights reserved.
 
+#pragma once
+
 #include "Runtime/Core/Public/Serialization/MemoryReader.h"
 #include "Runtime/CoreUObject/Public/Serialization/ArchiveUObject.h"
+
 /*
 * Variant of MemoryReader that allows serialization of weak references.
 */

@@ -14,7 +14,11 @@ class HORUS_API UHorusVisBoxComponent : public UBoxComponent
 {
 	GENERATED_BODY()
 public:
+
+#if WITH_EDITOR
+
 	/** Sets the line thickness of the box component. */
 	UFUNCTION(BlueprintCallable, Category = HorusVisBoxComponent)
 		void SetLineThickness(float NewLineThickness);
+#endif
 };

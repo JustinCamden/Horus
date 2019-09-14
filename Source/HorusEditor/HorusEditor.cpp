@@ -2,7 +2,7 @@
 
 #include "HorusEditor.h"
 #include "ModuleManager.h"
-#include "ActorCustomizations/HorusArenaCustomization.h"
+#include "ActorCustomizations/HorusArenaEditorCustomization.h"
 #include "PropertyEditorModule.h"
 #include "Engine.h"
 #include "UnrealEd.h"
@@ -20,7 +20,7 @@ void FHorusEditorModule::StartupModule()
 	// Register the details customization
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	// Leave out the suffix "A" when specifying the name of your actor in the first param
-	PropertyEditorModule.RegisterCustomClassLayout("HorusArena", FOnGetDetailCustomizationInstance::CreateStatic(&FHorusArenaCustomization::MakeInstance));
+	PropertyEditorModule.RegisterCustomClassLayout("HorusArenaEditor", FOnGetDetailCustomizationInstance::CreateStatic(&FHorusArenaEditorCustomization::MakeInstance));
 }
 
 void FHorusEditorModule::ShutdownModule()

@@ -12,7 +12,7 @@
 #endif
 
 // Log categories
-DEFINE_LOG_CATEGORY_STATIC(LogHorusArena, All, All);
+DEFINE_LOG_CATEGORY(LogHorusArena)
 
 FName AHorusArena::SceneRootName(TEXT("SceneRoot"));
 
@@ -33,7 +33,7 @@ AHorusArena::AHorusArena(const FObjectInitializer& ObjectInitializer)
 	ArenaHalfLength = 0.0f;
 	ArenaHalfWidth = 0.0f;
 	bArenaInitialized = false;
-	DefaultZone = AHorusArena::StaticClass();
+	ArenaName = NAME_None;
 
 	// Initialize components
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(SceneRootName);
@@ -41,7 +41,7 @@ AHorusArena::AHorusArena(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITOR
 	ZoneVisHeight = 50.0f;
-	ZoneVisLineThickness = 2.0f;
+	ZoneVisLineThickness = 3.0f;
 #endif
 
 }
@@ -65,11 +65,15 @@ void AHorusArena::BeginPlay()
 #endif
 }
 
+#if WITH_EDITOR
+
 void AHorusArena::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	ConstructArena();
+	LayoutArena();
 }
+
+#endif
 
 void AHorusArena::InitializeArena()
 {
@@ -97,7 +101,7 @@ void AHorusArena::InitializeArena()
 				UE_LOG(LogHorusArena, Warning, TEXT("%s: Zone not found for Column %d, Row %d. Spawning default zone class."), *GetNameSafe(this), ColumnIdx, RowIdx);
 				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
 				SpawnTransform.SetLocation(BaseSpawnLoc + SpawnOffset);
-				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(DefaultZone, SpawnTransform, SpawnParameters);
+				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(ArenaData.DefaultZoneClass.Get(), SpawnTransform, SpawnParameters);
 				NewZone->Arena = this;
 				NewZone->RowIdx = RowIdx;
 				NewZone->ColumnIdx = ColumnIdx;
@@ -170,98 +174,8 @@ AHorusArenaZone* AHorusArena::GetArenaZone(int32 Row, int32 Column) const
 	return nullptr;
 }
 //
-#if WITH_EDITOR
 
-void AHorusArena::UpdateZoneMappings()
-{
-	// Initialized variables for zone placement
-	FVector BaseSpawnLoc = FVector(-ArenaHalfLength + (0.5f * RowLength), -ArenaHalfWidth + (0.5f * ColumnWidth), ZoneSpawnHeightOffset);
-	FVector SpawnOffset = FVector::ZeroVector;
-
-	TArray<AActor*> ArenaZones;
-	UGameplayStatics::GetAllActorsOfClass(this, AHorusArenaZone::StaticClass(), ArenaZones);
-
-	// Position and populate each row
-	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
-	{
-		SpawnOffset.X = ((float)RowIdx / NumRows) * ArenaHalfLength * 2.0f;
-
-		// Position and populate each column
-		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
-		{
-			SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
-			UHorusVisBoxComponent* CurrVis = ZoneVisualizations[RowIdx][ColumnIdx];
-
-			// Get the zone with the shortest distance to this visualization component
-			TArray<AHorusArenaZone*> OverlappingZones;
-
-			for (AActor* CurrActor : ArenaZones)
-			{
-				AHorusArenaZone* CurrZone = Cast<AHorusArenaZone>(CurrActor);
-				FCollisionShape Shape = FCollisionShape::MakeBox(CurrZone->VisBox->GetScaledBoxExtent());
-				if (CurrVis->OverlapComponent(CurrZone->VisBox->GetComponentLocation(), CurrZone->VisBox->GetComponentTransform().GetRotation(), Shape))
-				{
-					OverlappingZones.Add(CurrZone);
-				}
-			}
-			//CurrVis->GetOverlappingActors(OverlappingZones, TSubclassOf<AHorusArenaZone>());
-		
-			float BestDistSquared = BIG_NUMBER;
-			AHorusArenaZone* BestZone = nullptr;
-			for (AHorusArenaZone* CurrZone : OverlappingZones)
-			{
-				float DistSquared = FVector::DistSquared(CurrVis->GetComponentLocation(), CurrZone->GetActorLocation());
-				if (DistSquared < BestDistSquared)
-				{
-					// Check if the zone is already associated with a space
-					if (CurrZone->Arena == this)
-					{
-						// Check if the distance to the old space is shorter than the distance to this space
-						float OldDistSquared = FVector::DistSquared(ZoneVisualizations[CurrZone->RowIdx][CurrZone->ColumnIdx]->GetComponentLocation(), 
-							CurrZone->GetActorLocation());
-						if (OldDistSquared > DistSquared)
-						{
-							BestDistSquared = DistSquared;
-							BestZone = CurrZone;
-						}
-					}
-					else
-					{
-						BestDistSquared = DistSquared;
-						BestZone = CurrZone;
-					}
-				}
-			}
-
-			// If an appropriate zone was found, update it accordingly
-			if (BestZone)
-			{
-				BestZone->SetActorLocationAndRotation(BaseSpawnLoc + SpawnOffset + GetActorLocation(), GetActorRotation());
-				BestZone->Arena = this;
-				BestZone->RowIdx = RowIdx;
-				BestZone->ColumnIdx = ColumnIdx;
-			}
-		}
-	}
-
-	return;
-}
-
-void AHorusArena::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	if (PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetName() == GET_MEMBER_NAME_CHECKED(AHorusArena, DefaultZone).ToString())
-	{
-		if (DefaultZone == NULL)
-		{
-			DefaultZone = AHorusArenaZone::StaticClass();
-		}
-	}
-}
-
-#endif
-
-void AHorusArena::ConstructArena()
+void AHorusArena::LayoutArena()
 {
 	// Initialize arena dimensions
 	Rows.SetNum(NumRows);
@@ -349,51 +263,50 @@ void AHorusArena::ConstructArena()
 	return;
 }
 
-void AHorusArena::ResizeArena(int32 NewNumColumns, int32 NewNumRows)
+void AHorusArena::SpawnZones()
 {
-	// Initialize new arena dimensions
-	int32 OldNumColumns = NumColumns;
-	int32 OldNumRows = NumRows;
-	NumColumns = FMath::Max(1, NewNumColumns);
-	NumRows = FMath::Max(1, NewNumRows);
-
-	// If the size of the map changed
-	if (OldNumColumns != NumColumns || OldNumRows != NumRows)
+	// Initialize variables
+	FVector BaseSpawnLoc = FVector(-ArenaHalfLength + (0.5f * RowLength), -ArenaHalfWidth + (0.5f * ColumnWidth), ZoneSpawnHeightOffset);
+	FVector SpawnOffset = FVector::ZeroVector;
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	FAttachmentTransformRules SpawnAttachmentRules = FAttachmentTransformRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+	
+	// Create and populate each row
+	checkf(ArenaData.Rows.Num() == NumRows, TEXT("%s: ERROR attempting to spawn Arena Zones: Num Rows does not match Arena Data!"), *GetNameSafe(this));
+	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
 	{
-		// Prune extra rows
-		for (int32 Idx = NumRows; Idx < OldNumRows; Idx++)
+		checkf(ArenaData.Rows[0].Columns.Num() == NumColumns, TEXT("%s: ERROR attempting to spawn Arena Zones: Num Columns does not match Arena Data Row %d!"), *GetNameSafe(this), RowIdx);
+		SpawnOffset.X = ((float)RowIdx / NumRows) * ArenaHalfLength * 2.0f;
+
+		// Create and populate each column
+		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
 		{
-			FHorusArenaRow& CurrRow = Rows[Idx];
-			for (AHorusArenaZone*& CurrZone : CurrRow.Columns)
+			// Get the class
+			TSubclassOf<AHorusArenaZone> ZoneClass = ArenaData.Rows[RowIdx].Columns[ColumnIdx].Get();
+			if (!ZoneClass)
 			{
-				if (CurrZone)
-				{
-					CurrZone->SetLifeSpan(KINDA_SMALL_NUMBER);
-					CurrZone = nullptr;
-				}
+				ZoneClass = ArenaData.DefaultZoneClass.Get();
+			}
+
+			// If there is a valid zone class, spawn the zone
+			if (ZoneClass)
+			{
+				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
+				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(ArenaData.DefaultZoneClass.Get(), FTransform(), SpawnParameters);
+				NewZone->Arena = this;
+				NewZone->RowIdx = RowIdx;
+				NewZone->ColumnIdx = ColumnIdx;
+				NewZone->AttachToActor(this, SpawnAttachmentRules);
+				NewZone->SetActorRelativeLocation(BaseSpawnLoc + SpawnOffset);
+				Rows[RowIdx].Columns[ColumnIdx] = NewZone;
+			}
+			else
+			{
+				UE_LOG(LogHorusArena, Warning, TEXT("%s: Warning attempting to spawn zone for Row %d Column %: No valid zone class found. No zone will be spawned."), *GetNameSafe(this), RowIdx, ColumnIdx);
 			}
 		}
-
-		// Prune extra columns
-		for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
-		{
-			for (int32 ColumnIdx = NumColumns; ColumnIdx < OldNumColumns; ColumnIdx++)
-			{
-				AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
-				if (CurrZone)
-				{
-					CurrZone->SetLifeSpan(KINDA_SMALL_NUMBER);
-					CurrZone = nullptr;
-				}
-			}
-		}
-
-		// Rebuild the arena
-		ConstructArena();
-
-#if WITH_EDITOR
-		// Cleanup old visualization components if necessary.
-#endif
 	}
 
 	return;

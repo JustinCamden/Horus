@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "HorusArena.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogHorusArena, Log, All);
+
 class AHorusArenaZone;
 
 #if WITH_EDITORONLY_DATA
@@ -71,15 +73,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AHorusArenaZone* GetArenaZone(int32 Row, int32 Column) const;
 
-	/** Used to change the size of the arena during runtime. */
-	UFUNCTION(BlueprintCallable, Category = HorusArena, meta = (UnsafeDuringActorConstruction))
-	void ResizeArena(int32 NewNumRows, int32 NewNumColumns);
-
 	/** 2D Array of all the zones in the arena. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TArray<FHorusArenaRow> Rows;
 
+#if WITH_EDITOR
+
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+#endif
 
 	/** Returns whether the arena has been initialized. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = HorusArena)
@@ -88,21 +90,6 @@ public:
 	/** Called after the arena has been fully initialized. */
 	UFUNCTION(BlueprintImplementableEvent, Category = HorusArena)
 		void OnArenaInitialized();
-
-	/** The default class of zone to spawn. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HorusArena)
-		TSubclassOf<AHorusArenaZone> DefaultZone;
-
-#if WITH_EDITOR
-	/*
-	* Function for updating the references to zones placed with the arena
-	*/
-	UFUNCTION(BlueprintCallable, Category = HorusArena)
-		void UpdateZoneMappings();
-
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-
-#endif
 
 protected:
 	// Called when the game starts or when spawned
@@ -144,15 +131,25 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = HorusArena)
 		float ArenaHalfWidth;
 
+	/** Calculates and lays out the shape of the arena, according to the number of rows and columns. */
+	void LayoutArena();
 
+	/** Spawns and places Arena Zones according to Arena Data. */
+	void SpawnZones();
 
+	/** Name of the arena data to load. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FName ArenaName;
+
+	/** Loaded arena data */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = HorusArena)
+		FHorusArenaData ArenaData;
 
 private:
 	/** Whether the arena has been initialized. */
-		bool bArenaInitialized;
+	bool bArenaInitialized;
 
-	/** Used to generate an arena according to the number of rows and columns. */
-	void ConstructArena();
+
 
 	/** Root scene component. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = HorusArenaZoneGenerator, meta = (AllowPrivateAccess = "true"))

@@ -1,7 +1,10 @@
 // ©Justin Camden 2019, all rights reserved.
 
+#pragma once
+
 #include "Runtime/Core/Public/Serialization/BufferArchive.h"
 #include "Runtime/CoreUObject/Public/Serialization/ArchiveUObject.h"
+
 /*
 * Variant of BufferArchive that allows serialization of weak references.
 * This in the editor module because it is used exclusively for saving data, and should never be needed during runtime.

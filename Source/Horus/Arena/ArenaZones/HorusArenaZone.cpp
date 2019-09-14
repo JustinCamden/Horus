@@ -30,7 +30,7 @@ AHorusArenaZone::AHorusArenaZone(const FObjectInitializer& ObjectInitializer)
 		VisBox->SetupAttachment(RootComponent);
 		VisBox->SetBoxExtent(FVector(50.0f, 37.5f, 25.0f));
 		VisBox->SetRelativeLocation(FVector(0.0f, 0.0f, 25.0f));
-		VisBox->SetLineThickness(2.0f);
+		VisBox->SetLineThickness(3.0f);
 	}
 #endif
 

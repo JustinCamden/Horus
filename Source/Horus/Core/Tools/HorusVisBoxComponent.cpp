@@ -3,8 +3,12 @@
 
 #include "HorusVisBoxComponent.h"
 
+#if WITH_EDITOR
+
 void UHorusVisBoxComponent::SetLineThickness(float NewLineThickness)
 {
 	LineThickness = NewLineThickness;
 	return;
 }
+
+#endif
