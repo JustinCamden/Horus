@@ -4,6 +4,7 @@
 #include "Runtime/Engine/Classes/Engine/World.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "ArenaZones/HorusArenaZone.h"
+#include "HorusArenaSubsystem.h"
 
 #if WITH_EDITOR
 
@@ -77,79 +78,9 @@ void AHorusArena::OnConstruction(const FTransform& Transform)
 
 void AHorusArena::InitializeArena()
 {
-	// Initialize spawning variables
-	FTransform SpawnTransform;
-	SpawnTransform.SetRotation(GetActorTransform().GetRotation());
-	FVector BaseSpawnLoc = FVector(-ArenaHalfLength + (0.5f * RowLength), -ArenaHalfWidth + (0.5f * ColumnWidth), ZoneSpawnHeightOffset) + GetActorLocation();
-	FVector SpawnOffset = FVector::ZeroVector;
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	// Create and populate each row
-	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
-	{
-		SpawnOffset.X = ((float)RowIdx / NumRows) * ArenaHalfLength * 2.0f;
-
-		// Create and populate each column
-		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
-		{
-			AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
-
-			// Spawn new zone if necessary
-			if (!CurrZone)
-			{
-				UE_LOG(LogHorusArena, Warning, TEXT("%s: Zone not found for Column %d, Row %d. Spawning default zone class."), *GetNameSafe(this), ColumnIdx, RowIdx);
-				SpawnOffset.Y = ((float)ColumnIdx / NumColumns) * ArenaHalfWidth * 2.0f;
-				SpawnTransform.SetLocation(BaseSpawnLoc + SpawnOffset);
-				AHorusArenaZone* NewZone = GetWorld()->SpawnActor<AHorusArenaZone>(ArenaData.DefaultZoneClass.Get(), SpawnTransform, SpawnParameters);
-				NewZone->Arena = this;
-				NewZone->RowIdx = RowIdx;
-				NewZone->ColumnIdx = ColumnIdx;
-				CurrZone = NewZone;
-			}
-
-			checkf(CurrZone != nullptr, TEXT("%f: Arena Zone at Row %d, Column %d is null!"), *GetNameSafe(this), RowIdx, ColumnIdx);
-		}
-	}
-
-	// After spawning each zone, update zone neighbor mappings
-	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
-	{
-		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
-		{
-			AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
-
-			if (NumRows > 1)
-			{
-				// Set next row
-				if (RowIdx < NumRows - 1)
-				{
-					CurrZone->NextRowZone = Rows[RowIdx + 1].Columns[ColumnIdx];
-				}
-
-				// Set previous row
-				if (RowIdx > 0)
-				{
-					CurrZone->PreviousRowZone = Rows[RowIdx - 1].Columns[ColumnIdx];
-				}
-			}
-
-			if (NumColumns > 1)
-			{
-				// Set next column
-				if (ColumnIdx < NumColumns - 1)
-				{
-					CurrZone->NextColumnZone = Rows[RowIdx].Columns[ColumnIdx + 1];
-				}
-
-				// Set previous column
-				if (ColumnIdx > 0)
-				{
-					CurrZone->PreviousColumnZone = Rows[RowIdx].Columns[ColumnIdx - 1];
-				}
-			}
-		}
-	}
+	LoadArenaData();
+	LayoutArena();
+	SpawnZones();
 
 	// Call initialized on the arena and all zones
 	OnArenaInitialized();
@@ -162,6 +93,8 @@ void AHorusArena::InitializeArena()
 		}
 	}
 
+	UE_LOG(LogHorusArena, Display, TEXT("Arena %s initialized"), *GetNameSafe(this));
+
 	return;
 }
 
@@ -173,7 +106,19 @@ AHorusArenaZone* AHorusArena::GetArenaZone(int32 Row, int32 Column) const
 	}
 	return nullptr;
 }
-//
+
+void AHorusArena::LoadArenaData()
+{
+	UHorusArenaSubsystem* ArenaSubSystem = GetWorld()->GetGameInstance()->GetSubsystem<UHorusArenaSubsystem>();
+	check(ArenaSubSystem && "ERROR attempting to load arena data: Arena Subsystem was nullptr");
+	checkf(ArenaSubSystem->GetArenaDatabase().Contains(ArenaName), TEXT("ERROR Attempting to load arena data: Arena Database did not contain entry for %s!"), *ArenaName.ToString());
+	ArenaData = ArenaSubSystem->GetArenaDatabase()[ArenaName];
+	NumRows = ArenaData.Rows.Num();
+	NumColumns = ArenaData.Rows[0].Columns.Num();
+
+	return;
+}
+
 
 void AHorusArena::LayoutArena()
 {
@@ -305,6 +250,53 @@ void AHorusArena::SpawnZones()
 			else
 			{
 				UE_LOG(LogHorusArena, Warning, TEXT("%s: Warning attempting to spawn zone for Row %d Column %: No valid zone class found. No zone will be spawned."), *GetNameSafe(this), RowIdx, ColumnIdx);
+			}
+		}
+	}
+
+	MapZoneNeighbors();
+
+	return;
+}
+
+void AHorusArena::MapZoneNeighbors()
+{
+	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
+	{
+		for (int32 ColumnIdx = 0; ColumnIdx < NumColumns; ColumnIdx++)
+		{
+			AHorusArenaZone*& CurrZone = Rows[RowIdx].Columns[ColumnIdx];
+			if (CurrZone)
+			{
+				if (NumRows > 1)
+				{
+					// Set next row
+					if (RowIdx < NumRows - 1)
+					{
+						CurrZone->NextRowZone = Rows[RowIdx + 1].Columns[ColumnIdx];
+					}
+
+					// Set previous row
+					if (RowIdx > 0)
+					{
+						CurrZone->PreviousRowZone = Rows[RowIdx - 1].Columns[ColumnIdx];
+					}
+				}
+
+				if (NumColumns > 1)
+				{
+					// Set next column
+					if (ColumnIdx < NumColumns - 1)
+					{
+						CurrZone->NextColumnZone = Rows[RowIdx].Columns[ColumnIdx + 1];
+					}
+
+					// Set previous column
+					if (ColumnIdx > 0)
+					{
+						CurrZone->PreviousColumnZone = Rows[RowIdx].Columns[ColumnIdx - 1];
+					}
+				}
 			}
 		}
 	}

@@ -67,10 +67,11 @@ public:
 	AHorusArena(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Called to initialize the arena. */
+	UFUNCTION(BlueprintCallable, Category = HorusArena)
 	void InitializeArena();
 
 	/** Returns an arena zone from the array. */
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = HorusArena)
 	AHorusArenaZone* GetArenaZone(int32 Row, int32 Column) const;
 
 	/** 2D Array of all the zones in the arena. */
@@ -131,11 +132,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = HorusArena)
 		float ArenaHalfWidth;
 
+	/** Loads arena data from the arena database. */
+	void LoadArenaData();
+
 	/** Calculates and lays out the shape of the arena, according to the number of rows and columns. */
 	void LayoutArena();
 
 	/** Spawns and places Arena Zones according to Arena Data. */
 	void SpawnZones();
+
+	/** Sets neighbor references on each zone. */
+	void MapZoneNeighbors();
 
 	/** Name of the arena data to load. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

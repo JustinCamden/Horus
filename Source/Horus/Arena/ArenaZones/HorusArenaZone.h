@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/HorusUtilityLibrary.h"
 #include "HorusArenaZone.generated.h"
 
 class AHorusArena;
@@ -20,7 +21,6 @@ class HORUS_API AHorusArenaZone : public AActor
 	GENERATED_BODY()
 	
 public:	
-
 	/** Name of the Scene Root Component. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName SceneRootName;
 
@@ -74,6 +74,15 @@ public:
 #endif
 
 
+	/** Gets a random Arena Zone class from a map of zone classes to relative probability. */
+	UFUNCTION(BlueprintCallable, Category = HorusUtilityLibrary)
+		static void GetRandomArenaZoneClassFromProbabilityPackage(const TMap<TSubclassOf<AHorusArenaZone>, uint8>& EntriesToRelativeProbability, TSubclassOf<AHorusArenaZone>& OutArenaZoneClass);
+
+
+	/** Gets a soft pointer random Arena Zone class from a map of zone classes to relative probability. */
+	UFUNCTION(BlueprintCallable, Category = HorusUtilityLibrary) static void GetRandomSoftArenaZoneClassFromProbabilityPackage(const TMap<TSoftClassPtr<AHorusArenaZone>, uint8>& EntriesToRelativeProbability, TSoftClassPtr<AHorusArenaZone>& OutArenaZoneClass);
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -85,3 +94,15 @@ private:
 		USceneComponent* SceneRoot;
 
 };
+
+FORCEINLINE void AHorusArenaZone::GetRandomArenaZoneClassFromProbabilityPackage(const TMap<TSubclassOf<AHorusArenaZone>, uint8>& EntriesToRelativeProbability, TSubclassOf<AHorusArenaZone>& OutArenaZoneClass)
+{
+	GetRandomEntryFromProbabilityPackage(EntriesToRelativeProbability, OutArenaZoneClass);
+	return;
+}
+
+FORCEINLINE void AHorusArenaZone::GetRandomSoftArenaZoneClassFromProbabilityPackage(const TMap<TSoftClassPtr<AHorusArenaZone>, uint8>& EntriesToRelativeProbability, TSoftClassPtr<AHorusArenaZone>& OutArenaZoneClass)
+{
+	GetRandomEntryFromProbabilityPackage(EntriesToRelativeProbability, OutArenaZoneClass);
+	return;
+}
